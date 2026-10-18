@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Download</title>
+  <meta name="description" content="Download.">
+  <meta name="theme-color" content="#0b0d14">
+  <script>
+    // Apply saved theme before first paint
+    (function () {
+      try {
+        var saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d14;
+      --surface: rgba(255, 255, 255, 0.06);
+      --surface-hover: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f4f6fb;
+      --muted: #8e97ab;
+      --accent: #7c5cff;
+      --accent-2: #22d3ee;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f4f5f9;
+        --surface: rgba(15, 23, 42, 0.05);
+        --surface-hover: rgba(15, 23, 42, 0.09);
+        --border: rgba(15, 23, 42, 0.1);
+        --text: #0f172a;
+        --muted: #5b6480;
+      }
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f4f5f9;
+      --surface: rgba(15, 23, 42, 0.05);
+      --surface-hover: rgba(15, 23, 42, 0.09);
+      --border: rgba(15, 23, 42, 0.1);
+      --text: #0f172a;
+      --muted: #5b6480;
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0b0d14;
+      --surface: rgba(255, 255, 255, 0.06);
+      --surface-hover: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f4f6fb;
+      --muted: #8e97ab;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- Top bar ---------- */
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px 20px;
+    }
+    .theme-toggle {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+    }
+    .theme-toggle:hover { color: var(--text); background: var(--surface-hover); }
+
+    /* ---------- Centered card ---------- */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px 64px;
+      text-align: center;
+    }
+
+    .app-icon {
+      width: 132px;
+      height: 132px;
+      border-radius: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 24px 60px -18px rgba(124, 92, 255, 0.55);
+      animation: pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    }
+    .app-icon svg { width: 60px; height: 60px; color: #fff; }
+
+    .version {
+      margin-top: 28px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ---------- Download button ---------- */
+    .download {
+      position: relative;
+      margin-top: 40px;
+      width: min(320px, 100%);
+      height: 56px;
+      border: 0;
+      border-radius: 28px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 14px 34px -12px rgba(124, 92, 255, 0.7);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .download:hover { box-shadow: 0 18px 40px -12px rgba(124, 92, 255, 0.8); }
+    .download:active { transform: scale(0.97); }
+    .download svg { width: 20px; height: 20px; }
+    .download:focus-visible,
+    .theme-toggle:focus-visible,
+    .source:focus-visible {
+      outline: 2px solid var(--accent-2);
+      outline-offset: 3px;
+    }
+
+    /* Progress fill shown while the download starts */
+    .progress {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 100%;
+      width: 0;
+      background: rgba(255, 255, 255, 0.22);
+      pointer-events: none;
+    }
+    .progress {
+      transition: width 0.2s linear;
+    }
+    /* Used when the file size is unknown */
+    .download.indeterminate .progress {
+      width: 35%;
+      transition: none;
+      animation: slide 1.2s ease-in-out infinite;
+    }
+
+    .file {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .source {
+      margin-top: 32px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .source:hover { color: var(--text); border-color: var(--muted); }
+
+    @keyframes pop {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    @keyframes slide {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(300%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Change color theme">Auto</button>
+  </div>
+
+  <main>
+    <div class="app-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+      </svg>
+    </div>
+
+    <p class="version">Version 1.0</p>
+
+    <a id="download-btn" class="download" href="https://github.com/mrhouibi/atm-management-system/releases/download/Release/Release.zip" download>
+      <span class="progress" aria-hidden="true"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
+      </svg>
+      <span id="download-label">Download</span>
+    </a>
+
+    <p class="file">Release.zip</p>
+
+    <a class="source" href="https://github.com/mrhouibi/atm-management-system" target="_blank" rel="noopener">Source code</a>
+  </main>
+
+  <script>
+    // Download the archive automatically 10 seconds after the page opens,
+    // or right away if the button is pressed. Shows real progress when
+    // the server reports the file size.
+    (function () {
+      const FILE_URL = "https://github.com/mrhouibi/atm-management-system/releases/download/Release/Release.zip";
+      const FILE_NAME = "Release.zip";
+      const AUTO_START_MS = 10000;
+
+      const btn = document.getElementById("download-btn");
+      const bar = btn.querySelector(".progress");
+      const label = document.getElementById("download-label");
+      let started = false;
+
+      function setProgress(ratio) {
+        bar.style.width = Math.round(ratio * 100) + "%";
+        label.textContent = Math.round(ratio * 100) + "%";
+      }
+
+      function saveUrl(href) {
+        const a = document.createElement("a");
+        a.href = href;
+        a.download = FILE_NAME;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      function saveBlob(blob) {
+        const url = URL.createObjectURL(blob);
+        saveUrl(url);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      }
+
+      // Fallback when the file cannot be read in the page (e.g. CORS):
+      // the browser downloads it directly, without a real progress value.
+      function fallback() {
+        btn.classList.add("indeterminate");
+        label.textContent = "Downloading…";
+        saveUrl(FILE_URL);
+      }
+
+      async function start() {
+        if (started) return;
+        started = true;
+        btn.classList.add("indeterminate");
+        label.textContent = "Downloading…";
+
+        try {
+          const res = await fetch(FILE_URL);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          const total = Number(res.headers.get("Content-Length")) || 0;
+          const reader = res.body.getReader();
+          const chunks = [];
+          let received = 0;
+
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+            if (total) {
+              btn.classList.remove("indeterminate");
+              setProgress(received / total);
+            }
+          }
+
+          btn.classList.remove("indeterminate");
+          bar.style.width = "100%";
+          label.textContent = "Downloaded";
+          saveBlob(new Blob(chunks));
+        } catch (e) {
+          fallback();
+        }
+      }
+
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        start();
+      });
+
+      setTimeout(start, AUTO_START_MS);
+    })();
+
+    // Theme switcher: Auto -> Light -> Dark, remembered per visitor
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById("theme-toggle");
+      const order = ["auto", "light", "dark"];
+      const labels = { auto: "Auto", light: "Light", dark: "Dark" };
+
+      let mode = "auto";
+      try {
+        const saved = localStorage.getItem("theme");
+        if (order.includes(saved)) mode = saved;
+      } catch (e) {}
+
+      function apply(next) {
+        if (next === "auto") root.removeAttribute("data-theme");
+        else root.setAttribute("data-theme", next);
+        btn.textContent = labels[next];
+      }
+
+      apply(mode);
+
+      btn.addEventListener("click", function () {
+        mode = order[(order.indexOf(mode) + 1) % order.length];
+        try { localStorage.setItem("theme", mode); } catch (e) {}
+        apply(mode);
+      });
+    })();
+  </script>
+</body>
+</html>
